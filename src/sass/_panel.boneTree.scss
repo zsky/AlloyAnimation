@@ -23,13 +23,13 @@
         color: $main-color;
     }
 
-    .js-removeBoneBtn, .js-addBoneBtn {
+    .js-removeBoneBtn, .js-addBoneBtn, .js-hidePanel {
         float: right;
         cursor: pointer;
         color: $topic-color3;
     }
 
-    .js-addBoneBtn {
+    .js-addBoneBtn, .js-removeBoneBtn {
         margin-right: $add-remove-btn-space;
     }
 

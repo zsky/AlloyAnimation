@@ -85,12 +85,14 @@ define([
             .once('addBone', handler.onceCertainPanelAddBone)
             .on('addBone', handler.onCertainPanelAddBone)
             .on('removedBone', handler.onBoneTreePanelRemoveBone)
-            .on('changeBoneParent', handler.onBoneTreePanelChangeBoneParent);
+            .on('changeBoneParent', handler.onBoneTreePanelChangeBoneParent)
+            .on('toggleBoneTreePanel', handler.toggleBoneTreePanel);
         timeLinePanelView
             .on('toAddKeyframe', handler.onTimeLinePanelToAddKeyframe)
             .on('toRemoveKeyframe', handler.onTimeLinePanelToRemoveKeyframe)
             .on('updatedKeyframe', handler.onCertainPanelUpdatedKeyframe)
-            .on('changedNowTime', handler.onTimeLinePanelChangedNowTime);
+            .on('changedNowTime', handler.onTimeLinePanelChangedNowTime)
+            .on('showBoneTreePanel', handler.onTimeLinePanelShowBoneTreePanel);
     };
 
     /**
@@ -660,6 +662,18 @@ define([
 
             boneId = boneTreePanelView.getActiveBoneId();
             displayBoneData( now, boneId, actionPanelView.getActiveActionId() );
+        },
+
+        toggleBoneTreePanel: function(){
+            
+            timeLinePanelView.updatePanelWidth();
+
+        },
+
+        onTimeLinePanelShowBoneTreePanel: function(){
+            
+            boneTreePanelView.showBoneTreePanel();
+
         },
 
         /**

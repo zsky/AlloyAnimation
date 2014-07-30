@@ -94,7 +94,8 @@ define([
             'mouseup .js-bone': 'onMouseUpBone',
             'click .js-bone': 'onClickBone',
             'click .js-addBoneBtn': 'onClickAddBoneBtn',
-            'click .js-removeBoneBtn': 'onClickRemoveBoneBtn'
+            'click .js-removeBoneBtn': 'onClickRemoveBoneBtn',
+            'click .js-hidePanel': 'onClickHidePanel'
         },
 
         onMouseDownBone: function($event){
@@ -254,7 +255,37 @@ define([
             }
 
             this.trigger('removedBone', toRemove);
+        },
+
+        /**
+        点击后隐藏面板
+        **/
+        onClickHidePanel: function(){
+ 
+            this.$el.animate({
+                width: '0',
+                paddingLeft: '0',
+                paddingRight: '0',
+                borderRight: '0'
+            });
+
+            this.trigger('toggleBoneTreePanel');
+
+
+        },
+
+        showBoneTreePanel: function(){
+            var boneTreePanelWidth = '38.2%';
+            this.$el.animate({
+                width: boneTreePanelWidth,
+                paddingLeft: '25px',
+                paddingRight: '25px',
+                borderRight: '1px solid transparent'
+            }, {
+                duration: 600
+            });
         }
+
     });
 
     /**

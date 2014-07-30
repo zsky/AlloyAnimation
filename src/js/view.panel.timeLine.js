@@ -5,11 +5,12 @@
 define([
     'jquery', 'underscore',
     'view.panel',
-    'tmpl!html/panel.timeLine.html', 'tmpl!html/panel.timeLine.timeLine.html', 'tmpl!html/panel.timeLine.keyframe.html'
+    'tmpl!html/panel.timeLine.html', 'tmpl!html/panel.timeLine.timeLine.html', 'tmpl!html/panel.timeLine.keyframe.html',
+    'tmpl!html/panel.timeLine.axis.html'
 ], function(
     $, _,
     Panel,
-    panelTmpl, timeLineTmpl, keyframeTmpl
+    panelTmpl, timeLineTmpl, keyframeTmpl, axisTmpl
 ){
     var TimeLinePanel;
 
@@ -52,6 +53,9 @@ define([
             this._isMouseMoved = false;
             // 拖拽关键帧的过程中做的标记，以免拖拽移动关键帧的同时移动游标
             this._notMoveVernier = false;
+
+            this._AXIS_MAX_NUMBER_COUNT = 20;
+            this._AXIS_MIN_NUMBER_COUNT = 9;
         },
 
         /**
@@ -190,7 +194,24 @@ define([
             }, this._$bd.children('.js-timeLine'));
         },
 
+        updatePanelWidth: function(){
+            
+            var workspacePanelWidth = '76.3924%';
+            var arrows = this.$el.find('.js-showBoneTreePanel');
+            this.$el.animate({
+              width: workspacePanelWidth
+            }, {
+              duration: 700,
+              complete: function () {
+                  arrows.show('slow');
+              }
+            });
+            this._updateTimeLineNumber(this._AXIS_MAX_NUMBER_COUNT);    
+        },
+
         events: {
+            'click .js-showBoneTreePanel': '_onClickShowBoneTreePanel',
+
             'click .js-addKeyframeBtn': '_onClickAddKeyframeBtn',
             'click .js-removeKeyframeBtn': '_onClickRemvoeKeyframeBtn',
             // 先绑定 `_onClickTimeLine` ，再绑定 `_onClickTimeLineOrAxis` ，
@@ -199,6 +220,34 @@ define([
             'click .js-timeLine, .js-axis': '_onClickTimeLineOrAxis',
             'mousemove .js-timeLine, .js-axis': '_onMouseMoveTimeLineOrAxis',
             'mousedown .js-keyframe': '_onMouseDownKeyframe'
+        },
+
+        _onClickShowBoneTreePanel: function(){
+            var timeLinePanelWidth = '38.1924%';
+            var self = this;
+
+            var arrows = this.$el.find('.js-showBoneTreePanel');
+            arrows.hide();         
+
+            this.$el.animate({
+              width: timeLinePanelWidth
+            }, {
+              duration: 300,
+              start: function(){
+                self.trigger('showBoneTreePanel');
+              }
+            }); 
+            this._updateTimeLineNumber(this._AXIS_MIN_NUMBER_COUNT);
+
+        },
+
+        _updateTimeLineNumber: function(axisNumberCount){
+            this.$el.find('.js-axis').html( axisTmpl({
+                axisNumberCount: axisNumberCount,
+                axisStep: this._AXIS_STEP,
+                axisSubStep: this._AXIS_SUB_STEP
+            }) );
+
         },
 
         _onClickAddKeyframeBtn: function(){

@@ -8,6 +8,12 @@
         color: $panel-color;
     }
 
+    .js-showBoneTreePanel {
+        float: left;
+        margin-right: 3px;
+        display: none;
+    }
+
     .js-addKeyframeBtn, .js-removeKeyframeBtn {
         float: right;
         cursor: pointer;
