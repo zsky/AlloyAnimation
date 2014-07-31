@@ -92,6 +92,7 @@ define([
             .on('toRemoveKeyframe', handler.onTimeLinePanelToRemoveKeyframe)
             .on('updatedKeyframe', handler.onCertainPanelUpdatedKeyframe)
             .on('changedNowTime', handler.onTimeLinePanelChangedNowTime)
+            .on('playAnimation', handler.onTimeLinePanelPlayAnimation)
             .on('showBoneTreePanel', handler.onTimeLinePanelShowBoneTreePanel);
     };
 
@@ -674,6 +675,33 @@ define([
             
             boneTreePanelView.showBoneTreePanel();
 
+        },
+
+        onTimeLinePanelPlayAnimation: function (now) {
+            var boneArray, actionId, nowTime, lastFrameTime, options, fields;
+            actionId = actionPanelView.getActiveActionId();
+            options = {
+                hasUpdatedBoneProp: true
+            };
+            fields = {
+                action: actionId
+            };
+            boneArray = boneColl.toJSON();         
+            nowTime = now || 0;
+            lastFrameTime = keyframeColl.getLastFrameTime(fields);
+
+            function step(){
+
+                timeLinePanelView.moveVernier(nowTime);
+               
+                nowTime += 0.1;
+                if(nowTime < lastFrameTime){
+                    requestAnimationFrame(step);
+                }
+            }
+            if(lastFrameTime !== 'undefined'){
+                step();
+            }
         },
 
         /**

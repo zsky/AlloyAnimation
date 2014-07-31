@@ -109,6 +109,23 @@ define([
             return frameData;
         },
 
+        getLastFrameTime: function(fields){
+            var keyframes;
+            keyframes = this.where(fields);
+
+            if(!keyframes.length){
+                console.debug('No frame with attributes %O', fields);
+                return null;
+            }
+
+            keyframes.sort(function(a, b){
+                return a.get('time') - b.get('time');
+            });
+
+            return keyframes.pop().get('time');
+
+        },
+
         _onAdd: function(bone){
             console.debug(
                 'Keyframe collection %s added keyframe %s',

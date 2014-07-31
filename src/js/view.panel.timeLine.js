@@ -209,7 +209,25 @@ define([
             this._updateTimeLineNumber(this._AXIS_MAX_NUMBER_COUNT);    
         },
 
+        moveVernier: function(nowTime){
+            var left, newTime;
+            left = this._time2Left(nowTime).toFixed(2);
+            this._$nowVernier
+                .css('left', left + 'px');
+            // 修改当前时刻，触发事件
+            if(nowTime !== this.now){
+                this.now = nowTime;
+                console.debug(
+                    'Panel %s change now time to %s',
+                    this.panelName, this.now
+                );
+
+                this.trigger('changedNowTime', this.now);
+            }
+        },
+
         events: {
+            'click .js-playAnimation': '_onClickPlayAnimationBtn',
             'click .js-showBoneTreePanel': '_onClickShowBoneTreePanel',
 
             'click .js-addKeyframeBtn': '_onClickAddKeyframeBtn',
@@ -248,6 +266,11 @@ define([
                 axisSubStep: this._AXIS_SUB_STEP
             }) );
 
+        },
+
+        _onClickPlayAnimationBtn: function () {
+            console.debug('Panel %s\'s play-animation button is clicked', this.panelName);
+            this.trigger('playAnimation', this.now);
         },
 
         _onClickAddKeyframeBtn: function(){
