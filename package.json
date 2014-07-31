@@ -1,0 +1,15 @@
+{
+  "name": "AlloyAnimation",
+  "version": "0.1.0",
+  "main": "src/index.html",
+  "window": {
+    "toolbar": false,
+    "width": 1600,
+    "height": 900,
+    "position": "center"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-node-webkit-builder": "^0.1.21"
+  }
+}

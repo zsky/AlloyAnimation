@@ -1,4 +1,4 @@
-require.config({
+requirejs.config({
     // 定义文件、路径的简写
     paths: {
         'base': 'base/',
@@ -28,7 +28,7 @@ require.config({
     }
 });
 
-require([
+requirejs([
     'controller',
     'jquery',
     'test/user'
