@@ -93,7 +93,8 @@ define([
         },
 
         events: {
-            'input .js-action': '_onInputActionName'
+            'input .js-action': '_onInputActionName',
+            'click .js-export': '_exportAction'
         },
 
         _onInputActionName: function($event){
@@ -112,6 +113,15 @@ define([
                     name: actionName
                 }
             );
+        },
+
+        _exportAction: function(){
+
+            console.debug('Panel %s export action',
+                this.panelName
+            );
+
+            this.trigger('exportAction');
         }
     });
 

@@ -81,6 +81,7 @@ define([
             .on('updatedBoneData', handler.onCertainPanelUpdatedBoneData);
         actionPanelView
             .on('updatedActionData', handler.onActionPanelUpdatedAction)
+            .on('exportAction', handler.onActionPanelExportAction);
         boneTreePanelView
             .once('addBone', handler.onceCertainPanelAddBone)
             .on('addBone', handler.onCertainPanelAddBone)
@@ -473,6 +474,200 @@ define([
                 .get(actionId)
                 .set(actionData, options);
         },
+
+        /**
+        @triggerObj actionPanelView
+        @event exportAction 导出动作
+        **/
+        onActionPanelExportAction: function(){
+            console.log('exportAction');
+            var boneData, keyframeData, actionId;
+            actionId = actionPanelView.getActiveActionId();
+            boneData = boneColl.toJSON();
+            keyframeData = keyframeColl.toJSON();
+            console.log('initia data', boneData, keyframeData);
+            
+            handler._exportBoneData(boneData);
+            //handler._exportKeyframeData(keyframeData);
+           
+        },
+
+        _exportBoneData: function(bones){
+            var canvas, bone, i, img, ctx, sWidth, sHeight, lineNum, 
+                space = 5,  //图片之间间隔
+                scale = 50, // 每个图片的所占位置的大小
+                currentX = 0,
+                currentY = 0,
+                textureResult = {},
+                boneObj;
+
+            lineNum = Math.floor(bones.length / 2) + bones.length % 2;
+            canvas = document.getElementById('export-canvas');
+            if(!canvas){
+                canvas = document.createElement('canvas');
+                canvas.id = "export-canvas";
+                
+                document.body.appendChild(canvas);
+
+            }
+            canvas.width = 2 * scale + 3 * space;
+            canvas.height = lineNum * (scale + space) + space;
+
+            ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for(i = 0; i < bones.length; i++){
+                console.log('i', i);
+                bone = bones[i];
+                boneObj = textureResult[bone.name] = {};
+                console.log('current', currentX, currentY);
+                boneObj.x = currentX + space;
+                boneObj.y = currentY + space;
+
+                img = new Image();
+                img.src = bone.texture;
+                console.log(img.width, img.height);
+                if(img.width >= img.height){
+                    sWidth = scale;
+                    sHeight = scale * img.height / img.width;
+                } else if(img.height > img.width){
+                    sHeight = scale;
+                    sWidth = scale * img.width / img.height;
+                };
+                boneColl.get(bone.id).set('width', sWidth);
+                boneColl.get(bone.id).set('height', sHeight);
+                boneObj.width = sWidth;
+                boneObj.height = sHeight;
+                if(i%2){  
+                    currentX = 0;
+                    currentY += scale + space;
+                } else{
+                    currentX = scale + space;
+                    
+                }
+                
+
+                img.onload = handler._drawLoadedImg(ctx, img, boneObj.x, boneObj.y, sWidth, sHeight);
+
+
+            };
+            console.log('texture textureResult', textureResult);
+            handler._download("texture.png", canvas.toDataURL());
+            handler._download('texture.js', 'data:text/plain;charset=utf-8,' + 'textureData=' + JSON.stringify(textureResult));
+
+            // export keyframes
+            handler._exportKeyframeData(keyframeColl.toJSON());
+
+
+
+
+        },
+
+        _drawLoadedImg: function(ctx, img, x, y, width, height){
+            console.log('drawImage', x, y, width, height);
+            ctx.drawImage(img, x, y, width, height);
+        },
+
+        
+
+        _exportKeyframeData: function(keyframes, bones){
+            console.log('export keyframe', keyframes);
+            var i, keyframe, action, actionObj, boneKeyframes, actionKeyframes, bone,
+                boneName, boneWidth, boneHeight, sortKeyframeData, fields, lastFrameTime,
+                animationData = {}, 
+                skeletonResult = {};
+            actionKeyframes = _.groupBy(keyframes, function(keyframe){
+                return keyframe.action;
+            });
+
+            for(actionId in actionKeyframes){
+                actionData = actionKeyframes[actionId];
+                actionName = actionColl.get(actionId).get('name');
+                actionObj = animationData[actionName] = {};
+                actionObj.name = actionName;
+
+                fields = {
+                    action: actionId
+                };
+                lastFrameTime = keyframeColl.getLastFrameTime(fields);
+
+                actionObj.frame = lastFrameTime;
+
+                actionBoneData = _.groupBy(actionData, function(obj){
+                    return obj.bone;
+                });
+                for(boneId in actionBoneData){
+                    boneKeyframe = actionBoneData[boneId];
+                    bone = boneColl.get(boneId);
+                    boneName = bone.get('name');
+                    boneWidth = bone.get('width');
+                    boneHeight = bone.get('height');
+                    console.log('boneWidth', boneWidth);
+                    console.log('boneKeyframe', boneKeyframe);
+                    boneObj = actionObj[boneName] = {};
+                    sortKeyframeData = _.sortBy(boneKeyframe, function(obj){ return obj.time; });
+                    boneObj.delay = 0;
+                    boneObj.nodeList = handler._dealKeyframes(sortKeyframeData, boneWidth, boneHeight);
+
+                    // export skeleton data
+                    skeletonObj = skeletonResult[boneName] = {};
+                    skeletonObj.name = boneName;
+                    skeletonObj.x = sortKeyframeData[0].x;
+                    skeletonObj.y = sortKeyframeData[0].y;
+                    skeletonObj.z = sortKeyframeData[0].z;
+                    console.log('bone parent', bone.get('parent'));
+                    if(parentId = bone.get('parent')){
+                        skeletonObj._parent = boneColl.get(parentId).get('name');
+                    }
+                    console.log(sortKeyframeData[0], 'sssss');
+                    skeletonObj.scaleX = sortKeyframeData[0].w / boneWidth;
+                    skeletonObj.scaleY = sortKeyframeData[0].h / boneHeight;
+
+                    console.log('skeletonObj', skeletonObj);
+                }
+                console.log('actionData', actionId, actionData);
+            }
+
+            handler._download('skeleton.js', 'data:text/plain;charset=utf-8,' + 'skeletonData=' + JSON.stringify(skeletonResult));
+            handler._download('action.js', 'data:text/plain;charset=utf-8,' + 'actionData=' + JSON.stringify(animationData));
+            console.log('result', skeletonResult, animationData);
+
+
+        },
+
+        _dealKeyframes: function(sortKeyframeData, boneWidth, boneHeight){
+            var i, obj,
+                prevTime = 0,
+                dealtData = [];
+            //sortKeyframeData = _.sortBy(boneKeyframe, function(obj){ return obj.time; });
+            for(i = 0; i < sortKeyframeData.length; i++){
+                keyframe = sortKeyframeData[i];
+                console.log('keyframe', keyframe);
+                obj = {};
+                obj.x = keyframe.x;
+                obj.y = keyframe.y;
+                obj.rotation = keyframe.rotate % 180;
+                obj.offR = Math.floor(keyframe.rotate / 180);
+                obj.scaleX = keyframe.w / boneWidth;
+                obj.scaleY = keyframe.h / boneHeight;
+                obj.alpha = keyframe.opacity;
+                obj.frame = keyframe.time - prevTime;
+                prevTime = keyframe.time;
+
+                dealtData.push(obj);
+
+            }
+            return dealtData;
+
+        },
+
+        _download: function(filename, data) {
+            var pom = document.createElement('a');
+            pom.setAttribute('href', data);
+            pom.setAttribute('download', filename);
+            pom.click();
+        },
+
+        
 
         /**
         @triggerObj boneTreePanelView

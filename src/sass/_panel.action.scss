@@ -8,6 +8,12 @@
         color: $panel-color;
     }
 
+    .js-export {
+        float: right;
+        cursor: pointer;
+        color: $topic-color3;
+    }
+
     .js-action {
         width: 100%;
         height: $item-height;
