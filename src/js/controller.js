@@ -545,6 +545,10 @@ define([
                 boneColl.get(bone.id).set('height', sHeight);
                 boneObj.width = sWidth;
                 boneObj.height = sHeight;
+
+                boneObj.originX = 0 - sWidth/2;
+                boneObj.originY = 0 - sHeight/2;
+
                 if(i%2){  
                     currentX = 0;
                     currentY += scale + space;
