@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>骨骼动画Demo</title>
+    <style type="text/css" media="screen">
+        html, body, div {margin: 0; padding: 0;}
+        html, body { background-color: #666666;}
+        body { overflow:hidden; }
+
+        /* operation  */
+        #operation {
+          position: absolute;
+          right: 50px;
+          top: 50px;
+        }
+        #playIt {
+          margin-top: 25px;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <div>
+      <canvas id="canvas"></canvas>
+      <img id="testImg" src="" style="display:none">
+    </div>  
+
+    <div id="operation">
+      <div id="close"> <img src="../img/frame-close.png"/> </div>
+      <div id="playIt"> <img src="../img/frame-refresh.png"/> </div>
+      
+    </div>
+
+
+
+<!-- 注意这里的js加载顺序，先加载游戏引擎，再加载资源js-->
+<script src='../js/base/alloystick_v0.4.js'></script>
+<script>
+
+
+    var playAnimation = function(){
+      console.log("in iframe playAnimation");
+      var canvas, textureImg, scene, player;   
+
+      // load data
+      console.log('exportData', window.parent.exportData);
+      document.getElementById('testImg').src = window.parent.exportData.texturePng;
+      alloysk.addTextureData({"test": window.parent.exportData.textureData});
+      alloysk.addBoneData({"test": window.parent.exportData.skeletonData});
+      alloysk.addAnimationData({"test": window.parent.exportData.animationData});
+
+      canvas = document.getElementById('canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      textureImg = document.getElementById('testImg');
+
+      scene = new alloyge.Scene(canvas.getContext('2d'));
+      player = new alloysk.Armature('test',textureImg);
+      // animationName ,totalFrames,transitionFrame,isLoop
+      player.playTo('action1', 330, 80, false);
+      player.setPos(window.innerWidth/2, window.innerHeight/2);
+      //player.setEaseType(false);
+      scene.addObj(player);
+      // 启动FPS监听器 (辅助功能 非必须)
+      alloyge.monitorFPS(scene);
+      // 开始场景里的动画，并且可以传入callback循环调用
+      scene.start();
+
+    };
+
+    var closeWindow = function(){
+      var jsPanelWrap = window.parent.document.getElementById("js-panelWrap");
+      var animationFrame = window.parent.document.getElementById("animationFrame");
+      console.log('js-panelWrap', jsPanelWrap);
+      console.log("animationFrame", animationFrame);
+      jsPanelWrap.style.display = "block";
+      animationFrame.style.display = "none";
+
+    };
+
+    // event listen
+    var playBtn = document.getElementById("playIt");
+    var closeBtn = document.getElementById("close");
+    playBtn.addEventListener("click", playAnimation, false);
+    closeBtn.addEventListener("click", closeWindow, false);
+
+    // resize canvas
+    window.addEventListener('resize', resizeCanvas, false);
+
+    function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight; 
+    }
+    resizeCanvas();
+
+</script>
+</body>
+</html>
+

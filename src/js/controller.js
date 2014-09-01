@@ -487,15 +487,21 @@ define([
             keyframeData = keyframeColl.toJSON();
             console.log('initia data', boneData, keyframeData);
             
-            handler._exportBoneData(boneData);
-            //handler._exportKeyframeData(keyframeData);
+            handler._exportBoneData(boneData, function(){
+                console.log('window data', window.exportData);
+                var fileTypeStr = "data:text/plain,";
+                handler._download("texture.png", window.exportData.texturePng);
+                handler._download('texture.js', fileTypeStr + JSON.stringify(window.exportData.textureData));
+                handler._download('skeleton.js', fileTypeStr + JSON.stringify(window.exportData.skeletonData));
+                handler._download('action.js', fileTypeStr + JSON.stringify(window.exportData.animationData));
+            });
            
         },
 
-        _exportBoneData: function(bones){
+        _exportBoneData: function(bones, callback){
             var canvas, bone, i, img, ctx, sWidth, sHeight, lineNum, 
                 space = 5,  //图片之间间隔
-                scale = 50, // 每个图片的所占位置的大小
+                scale = 150, // 每个图片的所占位置的大小
                 currentX = 0,
                 currentY = 0,
                 textureResult = {},
@@ -504,8 +510,10 @@ define([
             lineNum = Math.floor(bones.length / 2) + bones.length % 2;
             canvas = document.getElementById('export-canvas');
             if(!canvas){
+                console.log("create canvas");
                 canvas = document.createElement('canvas');
                 canvas.id = "export-canvas";
+                canvas.style.display = "none";
                 
                 document.body.appendChild(canvas);
 
@@ -551,11 +559,12 @@ define([
 
             };
             console.log('texture textureResult', textureResult);
-            handler._download("texture.png", canvas.toDataURL());
-            handler._download('texture.js', 'data:text/plain;charset=utf-8,' + 'textureData=' + JSON.stringify(textureResult));
+            window.exportData = {};
+            window.exportData.texturePng = canvas.toDataURL();
+            window.exportData.textureData = textureResult;
 
             // export keyframes
-            handler._exportKeyframeData(keyframeColl.toJSON());
+            handler._exportKeyframeData(keyframeColl.toJSON(), callback);
 
 
 
@@ -569,10 +578,11 @@ define([
 
         
 
-        _exportKeyframeData: function(keyframes, bones){
+        _exportKeyframeData: function(keyframes, callback){
             console.log('export keyframe', keyframes);
-            var i, keyframe, action, actionObj, boneKeyframes, actionKeyframes, bone,
+            var i, keyframe, action, actionObj, boneKeyframes, actionKeyframes, bone, parent,
                 boneName, boneWidth, boneHeight, sortKeyframeData, fields, lastFrameTime,
+                boneParentData = {},
                 animationData = {}, 
                 skeletonResult = {};
             actionKeyframes = _.groupBy(keyframes, function(keyframe){
@@ -590,13 +600,18 @@ define([
                 };
                 lastFrameTime = keyframeColl.getLastFrameTime(fields);
 
-                actionObj.frame = lastFrameTime;
+                actionObj.frame = 1;
 
                 actionBoneData = _.groupBy(actionData, function(obj){
                     return obj.bone;
                 });
+
+                console.log("actionBoneDataaa", actionBoneData);
                 for(boneId in actionBoneData){
                     boneKeyframe = actionBoneData[boneId];
+                    if(actionObj.frame && boneKeyframe.length > actionObj.frame){
+                        actionObj.frame = boneKeyframe.length;
+                    }
                     bone = boneColl.get(boneId);
                     boneName = bone.get('name');
                     boneWidth = bone.get('width');
@@ -605,8 +620,10 @@ define([
                     console.log('boneKeyframe', boneKeyframe);
                     boneObj = actionObj[boneName] = {};
                     sortKeyframeData = _.sortBy(boneKeyframe, function(obj){ return obj.time; });
+                    
+
                     boneObj.delay = 0;
-                    boneObj.nodeList = handler._dealKeyframes(sortKeyframeData, boneWidth, boneHeight);
+                    boneObj.nodeList = handler._dealKeyframes(actionId, bone, sortKeyframeData, boneWidth, boneHeight);
 
                     // export skeleton data
                     skeletonObj = skeletonResult[boneName] = {};
@@ -616,7 +633,7 @@ define([
                     skeletonObj.z = sortKeyframeData[0].z;
                     console.log('bone parent', bone.get('parent'));
                     if(parentId = bone.get('parent')){
-                        skeletonObj._parent = boneColl.get(parentId).get('name');
+                        //skeletonObj._parent = boneColl.get(parentId).get('name');
                     }
                     console.log(sortKeyframeData[0], 'sssss');
                     skeletonObj.scaleX = sortKeyframeData[0].w / boneWidth;
@@ -627,30 +644,58 @@ define([
                 console.log('actionData', actionId, actionData);
             }
 
-            handler._download('skeleton.js', 'data:text/plain;charset=utf-8,' + 'skeletonData=' + JSON.stringify(skeletonResult));
-            handler._download('action.js', 'data:text/plain;charset=utf-8,' + 'actionData=' + JSON.stringify(animationData));
+            window.exportData.skeletonData = skeletonResult;
+            window.exportData.animationData = animationData;
             console.log('result', skeletonResult, animationData);
+
+            console.log('callback');
+            callback();
+            
 
 
         },
 
-        _dealKeyframes: function(sortKeyframeData, boneWidth, boneHeight){
-            var i, obj,
-                prevTime = 0,
-                dealtData = [];
+        _dealKeyframes: function(actionId, bone, sortKeyframeData, boneWidth, boneHeight){
+            console.log("boneParentData", boneParentData);
+            var i, obj, parentId,
+                prevTime = -1,   // time为0的关键帧frame为1
+                dealtData = [],
+                boneParentData = {};
             //sortKeyframeData = _.sortBy(boneKeyframe, function(obj){ return obj.time; });
             for(i = 0; i < sortKeyframeData.length; i++){
+
                 keyframe = sortKeyframeData[i];
+
+                boneParentData.x = boneParentData.y = boneParentData.rotate = 0;
+
+                parentId = bone.get('parent');
+
+                while(parentId){
+                    frameData = keyframeColl.getFrameData({
+                        action: actionId,
+                        bone: parentId,
+                        time: keyframe.time
+                    });
+                    console.log('ddddddegug data and i', frameData, i);
+                    boneParentData.x += frameData.x;
+                    boneParentData.y += frameData.y;
+                    boneParentData.rotate += frameData.rotate;
+                    parentId = boneColl.get(parentId).get('parent');
+                }
+
+                
                 console.log('keyframe', keyframe);
+                var totalRotate = keyframe.rotate + boneParentData.rotate;
                 obj = {};
-                obj.x = keyframe.x;
-                obj.y = keyframe.y;
-                obj.rotation = keyframe.rotate % 180;
-                obj.offR = Math.floor(keyframe.rotate / 180);
+                obj.x = keyframe.x + boneParentData.x;
+                obj.y = keyframe.y + boneParentData.y;
+                obj.rotation = totalRotate % 180;
+                obj.offR = Math.floor(totalRotate / 180);
                 obj.scaleX = keyframe.w / boneWidth;
                 obj.scaleY = keyframe.h / boneHeight;
                 obj.alpha = keyframe.opacity;
-                obj.frame = keyframe.time - prevTime;
+                //obj.frame = keyframe.time - prevTime;
+                obj.frame = 1;
                 prevTime = keyframe.time;
 
                 dealtData.push(obj);
@@ -672,7 +717,7 @@ define([
         /**
         @triggerObj boneTreePanelView
         @event removedBone 当有骨骼视图被删除时触发
-        @param {Array} bones 骨骼的id
+        @param {Array} callback 骨骼的id
         @param {Object} [options]
         **/
         onBoneTreePanelRemoveBone: function(bones, options){
@@ -873,30 +918,15 @@ define([
         },
 
         onTimeLinePanelPlayAnimation: function (now) {
-            var boneArray, actionId, nowTime, lastFrameTime, options, fields;
-            actionId = actionPanelView.getActiveActionId();
-            options = {
-                hasUpdatedBoneProp: true
-            };
-            fields = {
-                action: actionId
-            };
-            boneArray = boneColl.toJSON();         
-            nowTime = now || 0;
-            lastFrameTime = keyframeColl.getLastFrameTime(fields);
 
-            function step(){
+            var boneData = boneColl.toJSON();
 
-                timeLinePanelView.moveVernier(nowTime);
-               
-                nowTime += 0.1;
-                if(nowTime < lastFrameTime){
-                    requestAnimationFrame(step);
-                }
-            }
-            if(lastFrameTime !== 'undefined'){
-                step();
-            }
+            handler._exportBoneData(boneData, function(){
+                $("#js-panelWrap").hide();
+                $("#animationFrame").show();
+                animationFrame.window.playAnimation();
+            });
+
         },
 
         /**
