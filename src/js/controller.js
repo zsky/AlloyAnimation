@@ -546,8 +546,10 @@ define([
                 boneObj.width = sWidth;
                 boneObj.height = sHeight;
 
-                boneObj.originX = 0 - sWidth/2;
-                boneObj.originY = 0 - sHeight/2;
+                //boneObj.originX = 0 - sWidth/2;
+                //boneObj.originY = 0 - sHeight/2;
+                boneObj.originX = 0;
+                boneObj.originY = 0;
 
                 if(i%2){  
                     currentX = 0;
